@@ -9,13 +9,17 @@ struct MountedDirectory: ExpressibleByArgument {
 		.mount(directory: path, to: mountName)
 	}
 
+	init(name: String, path: String) {
+		self.path = path.expandingTildeInPath
+		self.mountName = name
+	}
+
 	init?(argument: String) {
 		let components = argument.split(separator: "=").map(String.init)
 		guard components.count == 2 else {
 			return nil
 		}
-		path = components[0].expandingTildeInPath
-		mountName = components[1]
+		self.init(name: components[1], path: components[0])
 	}
 }
 

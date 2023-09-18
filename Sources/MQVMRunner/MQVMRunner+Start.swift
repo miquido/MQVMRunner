@@ -27,9 +27,9 @@ internal struct Start: ErrorHandlingParsableCommand, IPAble, VMAuthenticable {
 	@Option(
 		name: .long,
 		help: """
-			Password to account or path to the private key localization
-			i.e.: ~/.ssh/MyPrivateKey
-			"""
+									Password to account or path to the private key localization
+									i.e.: ~/.ssh/MyPrivateKey
+									"""
 	)
 	internal var privateKey: String?
 
@@ -112,7 +112,8 @@ internal struct Start: ErrorHandlingParsableCommand, IPAble, VMAuthenticable {
 
 	private func runVM() throws {
 		Logger.info("🏎", "Running VM")
-
+		var mount = mount
+		mount.append(TransferDirectory(identifier: jobID).asMountDirectory)
 		let mounts =
 			try mount
 			.map { try $0.ensureDirectoryExists() }
@@ -128,7 +129,7 @@ internal struct Start: ErrorHandlingParsableCommand, IPAble, VMAuthenticable {
 		Logger.info("🔧", "Testing SSH connection")
 
 		try await SSHExecutor.current.connect(host: ip, user: user, authentication: authentication)
-		try await SSHExecutor.current.execute(command: "whoami")
+		try await SSHExecutor.current.execute(command: "whoami").waitToFinish()
 		Logger.info("🔮", "VM '\(jobID)' is running on ip \(ip)")
 	}
 
@@ -162,10 +163,12 @@ internal struct Start: ErrorHandlingParsableCommand, IPAble, VMAuthenticable {
 			.collect()
 			.compactMap {
 				switch $0 {
-				case .stdout(let output):
+				case .standardOutput(let output):
 					return String(buffer: output)
-				case .stderr:
+				case .standardError:
 					throw XcodeSelectFail.error()
+						.with("Remote command failure.", for: "Reason")
+						.with(externalCommand, for: "Command")
 				}
 			}
 			.joined()
@@ -204,9 +207,13 @@ internal struct Start: ErrorHandlingParsableCommand, IPAble, VMAuthenticable {
 		Logger.info("🔨", "Setting Xcode version to \(xcode)")
 
 		do {
-			try await SSHExecutor.current.execute(command: "sudo xcode-select -s \"\(versionPath)\"")
+			try await SSHExecutor.current.connect(host: ip, user: user, authentication: authentication)
+			try await SSHExecutor.current.execute(command: "sudo xcode-select -s \"\(versionPath)\"").waitToFinish()
+			Logger.info("🔨", "Xcode version selected.")
 		} catch {
 			throw TheErrorMerge(head: XcodeSelectFail.error(), error.asTheError())
+				.with("Selecting xcode failed.", for: "Reason")
+				.with("sudo xcode-select -s \"\(versionPath)\"", for: "Command")
 		}
 	}
 }

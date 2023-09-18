@@ -8,6 +8,7 @@ internal struct FileSystem {
 	internal let write: (String, URL) throws -> Void
 	internal let remove: (URL) throws -> Void
 	internal let createDirectoryIfNotExists: (URL) throws -> Void
+	internal let copy: (String, String) throws -> Void
 }
 
 extension FileSystem {
@@ -37,12 +38,17 @@ extension FileSystem {
 			}
 		}
 
+		func copy(from: String, to: String) throws {
+			try FileManager.default.copyItem(atPath: from, toPath: to)
+		}
+
 		return .init(
 			homeDirectory: homeDirectory,
 			fileExists: fileExists(at:),
 			write: write(content:to:),
 			remove: remove(at:),
-			createDirectoryIfNotExists: createDirectoryIfNotExists(at:)
+			createDirectoryIfNotExists: createDirectoryIfNotExists(at:),
+			copy: copy(from:to:)
 		)
 	}
 }

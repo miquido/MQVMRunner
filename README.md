@@ -52,7 +52,7 @@ Clone or download this repository and run `make install` - it will build MQVMRun
 - username for VM, which you configured during VM setup
 - authorization method to your VM for runner, one of:
   - password - password you configured for your VM user during VM setup
-  - private key - path to RSA key which would be used for authorization (for configuration, see below)
+  - private key - path to private key which would be used for authorization (for configuration, see below). ECDSA and ED25519 keys are supported.
 - GitLab instance URL (i.e. https://gitlab.com/)
 - GitLab runner registration token
 - path for GitLab cache (optional)
@@ -63,7 +63,7 @@ Alternatively, you can set up runner manually by:
 - copying scripts from `scripts` directory to location of your choice and replacing placeholders with actual values
   - RUNNER_PATH - path to MQVMRunner executable
   - VM_USER - username for VM
-  - AUTH - `--private-key <path to RSA key>` if you want to authenticate with private key or `--password-authorization <password>` if you want to use password instead
+  - AUTH - `--private-key <path to private key>` if you want to authenticate with private key or `--password-authorization <password>` if you want to use password instead
   - CACHE_MOUNT - `--mount <path to gitlab_cache directory>=Cache` if you want to use GitLab cache or empty string if you don't want to use it
 - editing `config.toml` file (located in `~/.gitlab-runner`) and adding modified content of following snippet to your newly created runner:
 ```
@@ -81,9 +81,8 @@ In both methods, last steps are to install and start runner with `gitlab-runner 
 
 ### Authorizing on VM with private key.
 If you have set up runner to use private key for authorization, you need to do a few more steps to make it work.
-Firstly, if you don't have RSA key on host machine yet, you need to generate one with `ssh-keygen -t RSA` command.
+Firstly, if you don't have private key on host machine yet, you need to generate one with `ssh-keygen -t ECDSA` command.
 Then, you need to copy public key to VM with `ssh-copy-id -i <path to your newly created key> <VM USER>@<VM IP>` command.
-Finally, you need to edit `/etc/ssh/sshd_config` file on VM and add `PubkeyAcceptedAlgorithms +ssh-rsa` line.
 
 ## Setup GitLab CI
 Last step is to update your pipeline configuration to use newly created VM for builds.

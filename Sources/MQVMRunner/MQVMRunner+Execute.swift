@@ -73,11 +73,14 @@ internal struct Execute: ErrorHandlingParsableCommand, IPAble, VMAuthenticable {
 	)
 	internal var timeout: UInt = 10
 
+	private var transferDirectory: TransferDirectory { TransferDirectory(identifier: jobID) }
+
 	internal mutating func go() async throws {
 		Logger.info("💈", "Running execute")
 
 		try getVMIP(tart: tart, image: jobID)
 		try generateWrappingScript()
+
 		try await copyFilesToVM()
 
 		let remoteError = await runRemoteScript()
@@ -100,14 +103,16 @@ internal struct Execute: ErrorHandlingParsableCommand, IPAble, VMAuthenticable {
 	}
 
 	private func copyFilesToVM() async throws {
-		Logger.info("🗂️", "Copying files to VM")
+		Logger.info("🗂️", "Copying main_script to VM")
 		try await SSHExecutor.current.connect(host: ip, user: user, authentication: authentication)
-		try await SSHExecutor.current.transfer(input: command, output: "main_script")
+		try await FileTransfer.current.transfer(input: command, output: "main_script", using: transferDirectory)
 
+		Logger.info("🗂️", "Copying wrapping script to VM")
 		try await SSHExecutor.current.connect(host: ip, user: user, authentication: authentication)
-		try await SSHExecutor.current.transfer(
+		try await FileTransfer.current.transfer(
 			input: "/tmp/\(jobID)_remote_script.sh",
-			output: "script"
+			output: "script",
+			using: transferDirectory
 		)
 	}
 
@@ -116,15 +121,11 @@ internal struct Execute: ErrorHandlingParsableCommand, IPAble, VMAuthenticable {
 
 		do {
 			try await SSHExecutor.current.connect(host: ip, user: user, authentication: authentication)
-
 			try await SSHExecutor.current.execute(command: "chmod +x ./script; ./script")
 				.output(
-					stdOut: {
-						Logger.info("👷", $0)
-					},
-					stdErr: {
-						Logger.error("❌", $0)
-					})
+					stdOut: Logger.colorizedInfo,
+					stdErr: Logger.colorizedError
+				)
 		} catch let terminationError as CommandTermination {
 			return BuildFailed.error(code: terminationError.code)
 		} catch {
@@ -138,7 +139,7 @@ internal struct Execute: ErrorHandlingParsableCommand, IPAble, VMAuthenticable {
 
 		do {
 			try await SSHExecutor.current.connect(host: ip, user: user, authentication: authentication)
-			try await SSHExecutor.current.execute(command: "rm ./script")
+			try await SSHExecutor.current.execute(command: "rm ./script").waitToFinish()
 		} catch {
 			return error.asTheError()
 		}

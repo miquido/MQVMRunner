@@ -24,6 +24,13 @@ internal enum Logger {
 		FileHandle.standardOutput.write(data)
 	}
 
+	internal static func colorizedInfo(_ message: String) {
+		guard let data = getColorizedMessage(content: message, level: .info) else {
+			return
+		}
+		FileHandle.standardOutput.write(data)
+	}
+
 	internal static func verbose(_ emoji: String? = nil, _ message: String) {
 		guard verboseLogging else {
 			return
@@ -47,6 +54,21 @@ internal enum Logger {
 			return
 		}
 		FileHandle.standardError.write(data)
+	}
+
+	internal static func colorizedError(_ message: String) {
+		guard let data = getColorizedMessage(content: message, level: .error) else {
+			return
+		}
+		FileHandle.standardError.write(data)
+	}
+
+	private static func getColorizedMessage(
+		content: String,
+		level: LogLevel
+	) -> Data? {
+		let body = colorize(content, with: level.contentColor, bold: false)
+		return body.data(using: .utf8)
 	}
 
 	private static func getMessage(

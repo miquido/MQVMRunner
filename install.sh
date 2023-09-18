@@ -57,7 +57,7 @@ while [ -z "$AUTH" ]; do
               break
               ;;
           "key")
-              key=$(readInputWithDefault "Path to private key to access VM" "$HOME/.ssh/id_rsa")
+              key=$(readInputWithDefault "Path to private key (ECDSA or ED25519) to access VM" "$HOME/.ssh/id_ecdsa")
               key="${key/#\~/$HOME}"
               pass=$(readInputWithDefault "Password to decipher private key, leave empty for no password."  ""  true)
               printf "\n" #secure entry leaves cursor on the same line
@@ -93,7 +93,7 @@ while [ -z "$CACHE_PATH" ]; do
               break
               ;;
           "no")
-              CACHE_PATH=" "
+              CACHE_ARGUMENT=("")
               break
               ;;
           *)

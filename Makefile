@@ -1,6 +1,6 @@
 build:
-	swift build -c debug --arch arm64 --arch x86_64
-	@cp .build/apple/Products/Debug/MQVMRunner ./
+	swift build -c debug --arch arm64
+	@cp .build/arm64-apple-macosx/debug/MQVMRunner ./
 
 test:
 	swift test -c debug --arch arm64
